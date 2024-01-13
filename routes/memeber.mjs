@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 
 const router = express.Router();
 router.use(express.json());
+// Validation middleware
 
 // This section will help you get a list of all the records
 router.get("/", async (req, res) => {
@@ -35,12 +36,18 @@ router.get("/:id", async (req, res) => {
 });
 router.post("/", async (req, res) => {
     try {
+        const { name, email, photo } = req.body;
+
+        if (!name || !email) {
+            return res.status(400).send({ message: 'Name and email are required fields.' });
+        }
+
         console.log('Received request with body:', req.body);
 
         let newDocument = {
-            name: req.body.name,
-            email: req.body.email,
-            photo: req.body.photo,
+            name,
+            email,
+            photo: photo || null, // Set to null if photo is not provided
         };
         console.log('Creating new document:', newDocument);
 
@@ -56,19 +63,29 @@ router.post("/", async (req, res) => {
 });
 
 
+
 router.put("/:id", async (req, res) => {
     try {
-        const memberId = req.params.id; // Use "id" as it matches the parameter in the route
+        const memberId = req.params.id;
         const updateValues = {
             name: req.body.name,
             email: req.body.email,
             photo: req.body.photo,
         };
 
-        let collection = await db.collection("member");
-        let result = await collection.updateOne({ _id: new ObjectId(memberId) }, { $set: updateValues });
+        console.log('Updating member with ID:', memberId);
+        console.log('Update values:', updateValues);
 
-        if (result.modifiedCount > 0) {
+        let collection = await db.collection("member");
+        let result = await collection.updateOne(
+            { _id: new ObjectId(memberId) },
+            { $set: updateValues }
+        );
+
+        console.log('Update result:', result);
+
+        // Check for errors, not just modified count
+        if (result.matchedCount > 0 || result.modifiedCount > 0) {
             res.status(200).send({ message: 'Member updated successfully' });
         } else {
             res.status(404).send({ message: 'Member not found' });
@@ -78,6 +95,7 @@ router.put("/:id", async (req, res) => {
         res.status(500).send({ message: 'Internal server error' });
     }
 });
+
 
 router.delete("/:id", async (req, res) => {
     try {

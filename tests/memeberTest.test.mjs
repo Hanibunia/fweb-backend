@@ -107,6 +107,37 @@ it('should delete the created member by ID', async () => {
     }
 });
 
+it('should return an error if member data is invalid during creation', async () => {
+    try {
+        const invalidMemberData = {
+        };
+
+        const res = await request.post('/member').send(invalidMemberData);
+
+        expect(res.status).to.equal(400); // Expecting a 400 status code for validation error
+        // Add more assertions based on your expected response structure
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+
+
+
+it('should handle errors when retrieving a member by an invalid ID', async () => {
+    try {
+        const invalidMemberId = 'invalidId';
+
+        const res = await request.get(`/member/${invalidMemberId}`);
+
+        expect(res.status).to.equal(500); // Assuming 400 for bad request
+        // Add more assertions based on your expected response structure
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+
 after(async () => {
     try {
         // Introduce a delay (e.g., 1000 milliseconds) before closing the MongoDB connection
