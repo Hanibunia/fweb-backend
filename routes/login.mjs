@@ -1,8 +1,9 @@
-// Import necessary modules
+// login.mjs
 import express from "express";
-import { db, closeConnection, client } from "../db/conn.mjs";
+import { db } from "../db/conn.mjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 const router = express.Router();
 
@@ -17,6 +18,15 @@ const secretKey = generateSecretKey();
 // Print the generated secret key (optional)
 console.log(secretKey);
 
+// Nodemailer configuration
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'boizac8@gmail.com', // Replace with your email
+        pass: 'tlhg keki ztki vjpt', // Replace with your email password or an app-specific password
+    },
+});
+
 router.post("/admin", async (req, res) => {
     const { email, password } = req.body;
 
@@ -24,6 +34,41 @@ router.post("/admin", async (req, res) => {
         // Check if the provided email and password match a user in your MongoDB collection
         const collection = await db.collection("admin");
         const user = await collection.findOne({ email, password });
+
+        if (user) {
+            // Generate a verification code (could be a random string or a time-based code)
+            const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+            console.log(`Verification code for ${email}: ${verificationCode}`);
+
+            // Store the verification code in your MongoDB collection or a cache
+            await collection.updateOne({ _id: user._id }, { $set: { verificationCode } });
+
+            // Send the verification code via email
+            const mailOptions = {
+                from: 'boizac8@gmail.com',
+                to: email,
+                subject: 'Verification Code',
+                text: `Your verification code is: ${verificationCode}`,
+            };
+
+            await transporter.sendMail(mailOptions);
+
+            res.status(200).json({ message: "Verification code sent. Please check your email." });
+        } else {
+            res.status(401).json({ message: "Invalid credentials" });
+        }
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+router.post("/verify", async (req, res) => {
+    const { email, verificationCode } = req.body;
+
+    try {
+        const collection = await db.collection("admin");
+        const user = await collection.findOne({ email, verificationCode });
 
         if (user) {
             // Create a JWT token using the actual secret key
@@ -34,30 +79,14 @@ router.post("/admin", async (req, res) => {
             // Return the token
             res.status(200).json({ token });
         } else {
-            res.status(401).json({ message: "Invalid credentials" });
+            res.status(401).json({ message: "Incorrect verification code" });
         }
     } catch (error) {
-        console.error('Error during login:', error);
+        console.error('Error during verification:', error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
 
-router.post("/", async (req, res) => {
-    try {
-        const newDocument = {
-            email: req.body.email,
-            password: req.body.password,
-        };
-
-        const collection = await db.collection("admin");
-        const result = await collection.insertOne(newDocument);
-
-        res.status(200).send(result);
-    } catch (error) {
-        console.error('Error during login-admin:', error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
 
 // Logout route
 router.post("/logout", (req, res) => {
