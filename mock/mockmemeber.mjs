@@ -27,6 +27,9 @@ router.get('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
     try {
+        if (req.query.simulateError === 'true') {
+            throw new Error('Simulated internal server error');
+        }
         const memberId = req.params.id;
         const result = mockMembers.find(member => member._id === memberId);
 

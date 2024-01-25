@@ -43,12 +43,10 @@ describe('Member API Tests', () => {
 
     it('should get a member by ID', async () => {
         try {
-            // Assuming there's an existing member ID, replace 'existingMemberId' with an actual ID
             const existingMemberId = '658bbfe3b51af7b2908f775b';
             const res = await request.get(`/member/${existingMemberId}`);
 
             expect(res.status).to.equal(200);
-            // Add more assertions based on your expected response structure
         } catch (error) {
             console.error('Error during test:', error);
             throw error;
@@ -62,6 +60,18 @@ describe('Member API Tests', () => {
 
             expect(res.status).to.equal(404);
             expect(res.body.message).to.equal('Member not found');
+        } catch (error) {
+            console.error('Error during test:', error);
+            throw error;
+        }
+    });
+    it('should get a member by ID and return 500 on error', async () => {
+        try {
+            // Assuming there's a member with this ID
+            const existingMemberId = '658bbfe3b51af7b2908f775b';
+            const res = await request.get(`/member/${existingMemberId}?simulateError=true`);
+
+            expect(res.status).to.equal(500);
         } catch (error) {
             console.error('Error during test:', error);
             throw error;

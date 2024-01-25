@@ -2,8 +2,7 @@ import * as chai from 'chai';
 import supertest from 'supertest';
 import express from 'express';
 import router from '../routes/memeber.mjs';
-import { db, closeConnection, client } from '../db/conn.mjs'; // Import db, closeConnection, and client
-import sinon from 'sinon';
+import { db, closeConnection, client } from '../db/conn.mjs';
 
 const { expect } = chai;
 const app = express();
@@ -11,6 +10,8 @@ const app = express();
 // Use the router in your app
 app.use('/member', router);
 let createdMemberId; // Declare a variable to store the ID of the member created during the test
+let nonExistingMemberId = '65afd5875eab59f9c844afc2';
+let nonExistingMemberId2 = 'a';
 
 const request = supertest(app);
 
@@ -37,17 +38,40 @@ it('should get all members', async () => {
         throw error; // Signal that the test is complete with an error
     }
 });
+it('should get all members and return 500 on error', async () => {
+    try {
+        // Simulate an internal server error
+        const res = await request.get('/member?simulateError=true');
 
-// New test case: Retrieve a member by ID
+        // Check if the response status is 500
+        expect(res.status).to.equal(500);
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+
 it('should get a member by ID', async () => {
     try {
-        // Assuming there's an existing member ID, replace 'existingMemberId' with an actual ID
+
         const existingMemberId = '65980270cc4929a69734f0b2';
 
         const res = await request.get(`/member/${existingMemberId}`);
 
         expect(res.status).to.equal(200);
-        // Add more assertions based on your expected response structure
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+it('should get a member by ID', async () => {
+    try {
+
+        const existingMemberId = '65980270cc4929a69734f0b3';
+
+        const res = await request.get(`/member/${existingMemberId}`);
+
+        expect(res.status).to.equal(404);
     } catch (error) {
         console.error('Error during test:', error);
         throw error;
@@ -63,11 +87,10 @@ it('should create a new member without affecting the database', async () => {
         };
 
         const res = await request.post('/member').send(newMemberData);
-        createdMemberId = res.body._id; // Assuming your API returns the ID of the created member
+        createdMemberId = res.body._id;
         console.log('Created Member ID:', createdMemberId); // Log the created member ID
 
         expect(res.status).to.equal(200);
-        // Add more assertions based on your expected response structure
 
     } catch (error) {
         console.error('Error during test:', error);
@@ -77,7 +100,6 @@ it('should create a new member without affecting the database', async () => {
 
 it('should update a member by ID', async () => {
     try {
-        // Assuming there's an existing member ID, replace 'existingMemberId' with an actual ID
 
         const updatedMemberData = {
             name: 'Updated John Doe',
@@ -88,7 +110,46 @@ it('should update a member by ID', async () => {
         const res = await request.put(`/member/${createdMemberId}`).send(updatedMemberData);
 
         expect(res.status).to.equal(200);
-        // Add more assertions based on your expected response structure after updating
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+it('should handle case where member is not found and return 404', async () => {
+    try {
+
+        const updatedMemberData = {
+            name: 'Updated John Doe',
+            email: 'updated.john.doe@example.com',
+            photo: 'path/to/updated/photo.jpg',
+        };
+
+        const res = await request.put(`/member/${nonExistingMemberId}`).send(updatedMemberData);
+        console.log('Response:', res.status, res.body);
+
+        // Now you can use nonExistingMemberId if needed, but in this case, it's not necessary
+
+        expect(res.status).to.equal(404);
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+it('should handle case where member is not found and return 500', async () => {
+    try {
+
+        const updatedMemberData = {
+            name: 'Updated John Doe',
+            email: 'updated.john.doe@example.com',
+            photo: 'path/to/updated/photo.jpg',
+        };
+
+        const res = await request.put(`/member/${nonExistingMemberId2}`).send(updatedMemberData);
+        console.log('Response:', res.status, res.body);
+
+        // Now you can use nonExistingMemberId if needed, but in this case, it's not necessary
+
+        expect(res.status).to.equal(500);
     } catch (error) {
         console.error('Error during test:', error);
         throw error;
@@ -100,7 +161,26 @@ it('should delete the created member by ID', async () => {
         const res = await request.delete(`/member/${createdMemberId}`);
 
         expect(res.status).to.equal(200);
-        // Add more assertions based on your expected response structure after deleting
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+it('should handle case where member is not found and return 404 for delete', async () => {
+    try {
+        const res = await request.delete(`/member/${nonExistingMemberId}`);
+
+        expect(res.status).to.equal(404);
+    } catch (error) {
+        console.error('Error during test:', error);
+        throw error;
+    }
+});
+it('should handle case where member is not found and return 404 for delete', async () => {
+    try {
+        const res = await request.delete(`/member/${nonExistingMemberId2}`);
+
+        expect(res.status).to.equal(500);
     } catch (error) {
         console.error('Error during test:', error);
         throw error;
@@ -115,7 +195,6 @@ it('should return an error if member data is invalid during creation', async () 
         const res = await request.post('/member').send(invalidMemberData);
 
         expect(res.status).to.equal(400); // Expecting a 400 status code for validation error
-        // Add more assertions based on your expected response structure
     } catch (error) {
         console.error('Error during test:', error);
         throw error;
@@ -130,8 +209,7 @@ it('should handle errors when retrieving a member by an invalid ID', async () =>
 
         const res = await request.get(`/member/${invalidMemberId}`);
 
-        expect(res.status).to.equal(500); // Assuming 400 for bad request
-        // Add more assertions based on your expected response structure
+        expect(res.status).to.equal(500);
     } catch (error) {
         console.error('Error during test:', error);
         throw error;

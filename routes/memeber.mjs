@@ -4,11 +4,16 @@ import { ObjectId } from "mongodb";
 
 const router = express.Router();
 router.use(express.json());
-// Validation middleware
 
-// This section will help you get a list of all the records
 router.get("/", async (req, res) => {
     try {
+
+        const simulateError = req.query.simulateError;
+
+        if (simulateError) {
+            // Simulate an internal server error
+            throw new Error('Simulated internal server error');
+        }
         let collection = await db.collection("member");
         let results = await collection.find({}).toArray();
 
@@ -88,6 +93,8 @@ router.put("/:id", async (req, res) => {
         if (result.matchedCount > 0 || result.modifiedCount > 0) {
             res.status(200).send({ message: 'Member updated successfully' });
         } else {
+            console.log('Member not found.'); // Log that the member was not found
+
             res.status(404).send({ message: 'Member not found' });
         }
     } catch (error) {
@@ -106,7 +113,7 @@ router.delete("/:id", async (req, res) => {
         if (result.deletedCount > 0) {
             return res.status(200).send({ message: 'Member deleted successfully' });
         } else {
-            return sres.status(404).send({ message: 'Member not found' });
+            return res.status(404).send({ message: 'Member not found' });
         }
     } catch (error) {
         console.error('Error deleting member:', error);
